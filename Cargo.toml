@@ -1,0 +1,16 @@
+[package]
+name = "keylogger"
+version = "0.0.1"
+authors = ["Caleb M. Smith (Pixelcoda/p0indexter) <calebsmithwoolrich@gmail.com>"]
+
+[dependencies]
+getopts = "*"
+libc = "*"
+env_logger = "*"
+log = "*"
+chrono = "0.4.6"
+os_info = "*"
+hostname = "0.1.5"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser", "winnt", "processthreadsapi", "psapi", "winnls"] }
