@@ -5,16 +5,83 @@ use std::path::Path;
 use std::io::{BufReader, BufRead};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use std::thread;
+use std::time::Duration;
+
 
 pub fn init_rootless(log_file: String){
 
 
-    xinput_monitor(9, log_file);
+    // 
+
+    let mut keyboard_device_ids: Vec<u8> = Vec::new();
+
+    let xlist = xinput_list();
+
+    match xlist{
+        Ok(list) => {
+            let split = list.split("\n");
+            let vec = split.collect::<Vec<&str>>();
+
+            for xline in vec {
+                let word_split = xline.split(" ");
+                let word_vec = word_split.collect::<Vec<&str>>();
+
+                for word in word_vec {
+                    if word.contains("id="){
+                        let num = word.replace("id=", "").replace(" ", "").replace("\t", "").chars().nth(0).unwrap().to_string();
+                        println!("Num: {}",num);
+                        let id = num.parse::<u8>();
+
+                        match id{
+                            Ok(idx) => {
+                                keyboard_device_ids.push(idx);
+                            },
+                            Err(err) => {
+
+                            }
+                        }
+                       
+                    }
+                }
+            }
+        },
+        Err(err) => {
+            println!("{}", err);
+        }
+    }
+
+
+    for id in keyboard_device_ids{
+
+        let file_name = format!("{}-{}", id.clone(), log_file.clone());
+        
+        thread::spawn(move || {
+            xinput_monitor(id, file_name);
+        });
+
+    }
+
+    loop {}
+
+
+    
 }
 
-// xinput --list | grep keyboard
-pub fn xinput_list(){
-    
+// 
+pub fn xinput_list() -> Result<String, String>{
+    let cmd = Command::new("sh")
+    .arg("-c")
+    .arg("xinput --list | grep keyboard")
+    .output()
+    .expect("failed to execute process");
+    if cmd.status.success() {
+        let er = String::from_utf8_lossy(&cmd.stdout).to_string();
+        return Ok(er);
+    } else {
+        let er = String::from_utf8_lossy(&cmd.stderr).to_string();
+        return Err(er);
+    }
 }
 
 // xinput --test $id
